@@ -1,11 +1,12 @@
-﻿using System;
+﻿using app.TPL_DataflowQueue.PoisonQueue;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks.Dataflow;
 
-namespace app.TPL_DataflowQueue
+namespace app
 {    
-    public class TPLDataflowSimpleQueue
+    public class TPLDataflowSimpleQueue : IJobQueue<Action>
     {
         /// <summary>
         /// An ActionBlock is one kind of Block in TPL Dataflow. 
@@ -13,19 +14,25 @@ namespace app.TPL_DataflowQueue
         /// But not as an ISourceBlock, so it can’t propagate messages to other blocks. 
         /// It has the ability to invoke a delegate for each data element received.
         /// </summary>
-        private ActionBlock<string> _jobs;
+        private ActionBlock<Action> _jobs;
 
         public TPLDataflowSimpleQueue()
         {
-            _jobs = new ActionBlock<string>((job) =>
+            _jobs = new ActionBlock<Action>((job) =>
             {
-                Console.WriteLine(job);
+                job.Invoke();
+                //Console.WriteLine(job);
             });
         }
 
-        public void Enqueue(string job)
+        public void Enqueue(Action job)
         {
             _jobs.Post(job);
+        }
+
+        public void Stop()
+        {
+            _jobs.Complete();
         }
     }
 }

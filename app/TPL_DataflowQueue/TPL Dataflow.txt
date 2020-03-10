@@ -1,0 +1,28 @@
+﻿Verdict on TPL Dataflow
+========================
+I honestly think Dataflow is one of the best solutions presented in this series. It combines the beauty of Reactive Extensions (Rx) and the intuitive manner of other approaches. It’s one also the most versatile solution from everything we’ve seen so far. 
+In fact, it innately supports most common Job Queue customization presented in this series.
+My only concern is the overhead of adding this library and performance implications. 
+I suspect Dataflow is going to be slower than the other solutions. But, suspicion only goes so far. 
+I plan on writing one more special part to this series where I’ll benchmark all the Job Queue implementations and we will see the real performance results (and possibly memory footprint).
+
+
+Failure handling, and the Poison Queue
+======================================
+Let’s consider a scenario where a job handler failed with an exception. According to your specific needs, you can go several ways about it:
+
+Retry
+Do nothing (move to the next message)
+Return to the queue to handle later
+And you probably can guess that there are issues that can arise from that.
+
+If you decided to retry, what happens if retry fails indefinitely? The entire queue becomes stuck.
+If you decided to move the job back to the queue, to a later position, after multiple failing jobs you can get to the point where the queue is handling just failing jobs. And again the queue becomes stuck.
+If the job is part of a Transaction, then you might want to Abort the entire transaction. That means that each job will have to have some kind of AbortTransaction() method.
+If the job is part of a Batch of jobs, you might want to have an AbortBatch() method. In that case, you might want to handle the entire batch again.
+All these problems lead to the concept of the poison messages (aka poison jobs). The idea is that according to some rules, you can mark messages as posion message. In that case, you will move these messages to a separate dedicate queue called the poison queue. Here’s are some example to policies on what to do when a job fails:
+
+Move the job to the poison queue
+Retry 3 times and if failed move to poison queue
+Move back to the queue in to the 100th position and increase retry counter. When retry counter reaches 5, move to poison queue.
+Move back to the queue to be executed after 30 minutes. After 3 retries, discard entirely (without posion queue). This requires a sophisticated queue that can produce jobs after a given time.

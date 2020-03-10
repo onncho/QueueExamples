@@ -5,26 +5,36 @@
 // 4. We want the jobs to execute in a background single thread.
 // 5. For simplicity, our jobs will be strings printed to Console.
 
+using app.TPL_DataflowQueue.PoisonQueue;
 using System;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
-public class RxQueueWithScheduler
+namespace app
 {
-    Subject<string> _jobs = new Subject<string>();
- 
-    public RxQueueWithScheduler()
+    public class RxQueueWithScheduler : IJobQueue<Action>
     {
-        _jobs.ObserveOn(Scheduler.Default)
-        .Subscribe(job =>
+        Subject<Action> _jobs = new Subject<Action>();
+
+        public RxQueueWithScheduler()
         {
-            Console.WriteLine(job);
-        });
-    }
- 
-    public void Enqueue(string job)
-    {
-        _jobs.OnNext(job);
+            _jobs.ObserveOn(Scheduler.Default)
+            .Subscribe(job =>
+            {
+                //Console.WriteLine(job);
+                job.Invoke();
+            });
+        }
+
+        public void Enqueue(Action job)
+        {
+            _jobs.OnNext(job);
+        }
+
+        public void Stop()
+        {
+            _jobs.Dispose();
+        }
     }
 }

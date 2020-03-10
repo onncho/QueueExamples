@@ -12,32 +12,41 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 
-public class BlockingCollectionQueue
+namespace app
 {
-    private BlockingCollection<object> _jobs = new BlockingCollection<object>();
-
-    public BlockingCollectionQueue()
+    public class BlockingCollectionQueue : IJobQueue<Action>
     {
-        var thread = new Thread(new ThreadStart(OnStart));
-        thread.IsBackground = true;
-        thread.Start();
-    }
+        private BlockingCollection<Action> _jobs = new BlockingCollection<Action>();
 
-    public void Enqueue(object job)
-    {
-        _jobs.Add(job);
-    }
-
-
-//GetConsumingEnumerable method. When called, it will either Take the next item in the collection or Block until such an item exists. 
-//In other words, it will stop the thread until a new item is added to the collection. 
-//With this method, we don’t have to write that annoying infinite loop while(true){}.
-
-    private void OnStart()
-    {
-        foreach (var job in _jobs.GetConsumingEnumerable(CancellationToken.None))
+        public BlockingCollectionQueue()
         {
-            Console.WriteLine(job);
+            var thread = new Thread(new ThreadStart(OnStart));
+            thread.IsBackground = true;
+            thread.Start();
+        }
+
+        public void Enqueue(Action job)
+        {
+            _jobs.Add(job);
+        }
+
+
+        //GetConsumingEnumerable method. When called, it will either Take the next item in the collection or Block until such an item exists. 
+        //In other words, it will stop the thread until a new item is added to the collection. 
+        //With this method, we don’t have to write that annoying infinite loop while(true){}.
+
+        private void OnStart()
+        {
+            foreach (var job in _jobs.GetConsumingEnumerable(CancellationToken.None))
+            {
+                //Console.WriteLine(job);
+                job.Invoke();
+            }
+        }
+
+        public void Stop()
+        {
+            _jobs.CompleteAdding();
         }
     }
 }

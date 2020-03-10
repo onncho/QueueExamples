@@ -2,6 +2,8 @@
 
 https://michaelscodingspot.com/c-job-queues/
 
+https://michaelscodingspot.com/performance-of-producer-consumer/
+
 
 In Part 1 and Part 2 we went over what are Job Queues, why they are so important and how to implement them with several methods. Some of those methods were thread-pool implementations, BlockingCollection implementations, Reactive Extensions, and System.Threading.Channels.
 

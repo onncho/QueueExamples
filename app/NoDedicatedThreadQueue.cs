@@ -4,50 +4,58 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
-public class NoDedicatedThreadQueue
+namespace app
 {
-    private Queue<string> _jobs = new Queue<string>();
-    private bool _delegateQueuedOrRunning = false;
- 
-    public void Enqueue(string job)
+    public class NoDedicatedThreadQueue : IJobQueue<Action>
     {
-        lock (_jobs)
+        private Queue<Action> _jobs = new Queue<Action>();
+        private bool _delegateQueuedOrRunning = false;
+
+        public void Enqueue(Action job)
         {
-            _jobs.Enqueue(job);
-            if (!_delegateQueuedOrRunning)
-            {
-                _delegateQueuedOrRunning = true;
-                ThreadPool.UnsafeQueueUserWorkItem(ProcessQueuedItems, null);
-            }
-        }
-    }
- 
-    private void ProcessQueuedItems(object ignored)
-    {
-        while (true)
-        {
-            string item;
             lock (_jobs)
             {
-                if (_jobs.Count == 0)
+                _jobs.Enqueue(job);
+                if (!_delegateQueuedOrRunning)
                 {
-                    _delegateQueuedOrRunning = false;
-                    break;
+                    _delegateQueuedOrRunning = true;
+                    ThreadPool.UnsafeQueueUserWorkItem(ProcessQueuedItems, null);
                 }
- 
-                item = _jobs.Dequeue();
-            }
- 
-            try
-            {
-                //do job
-                Console.WriteLine(item);
-            }
-            catch
-            {
-                ThreadPool.UnsafeQueueUserWorkItem(ProcessQueuedItems, null);
-                throw;
             }
         }
+
+        private void ProcessQueuedItems(object ignored)
+        {
+            while (true)
+            {
+                Action job;
+                lock (_jobs)
+                {
+                    if (_jobs.Count == 0)
+                    {
+                        _delegateQueuedOrRunning = false;
+                        break;
+                    }
+
+                    job = _jobs.Dequeue();
+                }
+
+                try
+                {
+                    //do job
+                    job.Invoke();
+                    //Console.WriteLine(job.Method);
+                }
+                catch
+                {
+                    ThreadPool.UnsafeQueueUserWorkItem(ProcessQueuedItems, null);
+                    throw;
+                }
+            }
+        }
+        public void Stop()
+        {
+        }
+
     }
 }
